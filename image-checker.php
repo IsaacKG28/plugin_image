@@ -3,7 +3,7 @@
 Plugin Name: Disable Publish Button
 Description: Deshabilita el botón de publicar producto en WooCommerce si no hay imágenes en la galería.
 Version: 1.0
-Author: Tu nombre
+Author: Fernando Isaac Gonzalez Medina
 */
 
 add_action('admin_footer', 'disable_publish_button');
