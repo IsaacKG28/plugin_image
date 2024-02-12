@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Deshabilitar Publicar Sin Imágenes
+Plugin Name: Image Checker
 Description: Deshabilita el botón de publicar en productos de WooCommerce si no hay imágenes en la galería.
 Version: 1.0
 Author: Fernando Isaac Gonzalez Medina
@@ -29,6 +29,82 @@ function disable_publish_button() {
         <?php
     }
 }
+?>
+<?php
+// PHP
+$showModal = true;
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+    /* CSS */
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 1; 
+      padding-top: 100px; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgb(0,0,0); 
+      background-color: rgba(0,0,0,0.4); 
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+    }
+
+    .close {
+      color: #aaaaaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #000;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    </style>
+</head>
+<body>
+
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close">×</span>
+    <p>Recuerda que si intentas publicar un nuevo producto sin imágenes en la galería se guardará automáticamente como borrador.</p>
+  </div>
+</div>
+
+<script>
+// JavaScript
+window.onload = function() {
+    <?php if ($showModal) { ?>
+        var modal = document.getElementById("myModal");
+        modal.style.display = "block";
+    <?php } ?>
+
+    // Cuando el usuario haga clic en <span> (x), cierra la ventana modal
+    document.getElementsByClassName("close")[0].onclick = function() {
+        modal.style.display = "none";
+    }
+}
+</script>
+
+</body>
+</html>
+
+<?php
 //Accion para BEAR BULK EDITOR
 add_action('save_post', 'check_product_images', 10, 3);
 function check_product_images($post_id, $post, $update) {
@@ -36,14 +112,11 @@ function check_product_images($post_id, $post, $update) {
         $product = wc_get_product($post_id);
         $attachment_ids = $product->get_gallery_image_ids();
         if (empty($attachment_ids)) {
-            // No hay imágenes en la galería, mostramos una ventana modal
-            echo '<script type="text/javascript">
-                alert("No puedes publicar este producto sin agregar imágenes a la galería.");
-            </script>';
+            
             // Cambiamos el estado a 'Borrador'
             $post->post_status = 'draft';
             wp_update_post($post);
         }
     }
-}
+} 
 ?>
