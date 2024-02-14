@@ -20,16 +20,20 @@ function disable_publish_button() {
         <script type="text/javascript">
             jQuery(document).ready(function($) {
                 var gallery_images = $('li.image').length;
-                if(gallery_images == 0) {
+                if (gallery_images == 0) {
                     $('#publish').prop('disabled', true);
                 }
                 $('body').on('DOMNodeInserted', 'li.image', function () {
-                    $('#publish').prop('disabled', false);
+                    gallery_images++;
+                    if (gallery_images > 0) {
+                        $('#publish').prop('disabled', false);
+                    }
                 });
                 $('body').on('DOMNodeRemoved', 'li.image', function () {
-                    // var gallery_images = $('li.image').length;
-                    // if (gallery_images == 0)
+                    gallery_images--;
+                    if (gallery_images == 0) {
                         $('#publish').prop('disabled', true);
+                    }
                 });
             });
         </script>
@@ -43,7 +47,6 @@ function check_product_images($post_id, $post, $update) {
         $product = wc_get_product($post_id);
         $attachment_ids = $product->get_gallery_image_ids();
         if (empty($attachment_ids)) {
-            
             // Cambiamos el estado a 'Borrador'
             $post->post_status = 'draft';
             wp_update_post($post);
