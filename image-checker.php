@@ -8,103 +8,34 @@ Author: Fernando Isaac Gonzalez Medina
 add_action('admin_footer', 'disable_publish_button');
 function disable_publish_button() {
     global $post;
-    if($post->post_type == 'product') { // Verifica si el tipo de post es 'product'
+
+    // Verifica si $post es una instancia válida de WP_Post
+    if (!is_a($post, 'WP_Post')) {
+        return; // Salir de la función si $post no es válido
+    }
+
+    // Ahora puedes acceder a las propiedades de $post de manera segura
+    if ($post->post_type == 'product') { // Verifica si el tipo de post es 'product'
         ?>
         <script type="text/javascript">
             jQuery(document).ready(function($) {
                 var gallery_images = $('li.image').length;
-                if(gallery_images == 0) { // Verifica si la galería de imágenes está vacía
-                    $('#publish').prop('disabled', true); // Deshabilita el botón de publicar
+                if(gallery_images == 0) {
+                    $('#publish').prop('disabled', true);
                 }
                 $('body').on('DOMNodeInserted', 'li.image', function () {
-                    $('#publish').prop('disabled', false); // Habilita el botón de publicar si se agrega una imagen a la galería
+                    $('#publish').prop('disabled', false);
                 });
                 $('body').on('DOMNodeRemoved', 'li.image', function () {
                     // var gallery_images = $('li.image').length;
-                    // if (gallery_images == 0) //ESTAS LINEAS EVITABAN LA ACTUALIZACION DEL BOTON
-                        $('#publish').prop('disabled', true); // Deshabilita el botón de publicar si se eliminan todas las imágenes de la galería   
+                    // if (gallery_images == 0)
+                        $('#publish').prop('disabled', true);
                 });
             });
         </script>
         <?php
     }
 }
-?>
-<?php
-// PHP
-$showModal = true;
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-    /* CSS */
-    .modal {
-      display: none; 
-      position: fixed; 
-      z-index: 1; 
-      padding-top: 100px; 
-      left: 0;
-      top: 0;
-      width: 100%; 
-      height: 100%; 
-      overflow: auto; 
-      background-color: rgb(0,0,0); 
-      background-color: rgba(0,0,0,0.4); 
-    }
-
-    .modal-content {
-      background-color: #fefefe;
-      margin: auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-    }
-
-    .close {
-      color: #aaaaaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    .close:hover,
-    .close:focus {
-      color: #000;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    </style>
-</head>
-<body>
-
-<div id="myModal" class="modal">
-  <div class="modal-content">
-    <span class="close">×</span>
-    <p>Recuerda que si intentas publicar un nuevo producto sin imágenes en la galería se guardará automáticamente como borrador.</p>
-  </div>
-</div>
-
-<script>
-// JavaScript
-window.onload = function() {
-    <?php if ($showModal) { ?>
-        var modal = document.getElementById("myModal");
-        modal.style.display = "block";
-    <?php } ?>
-
-    // Cuando el usuario haga clic en <span> (x), cierra la ventana modal
-    document.getElementsByClassName("close")[0].onclick = function() {
-        modal.style.display = "none";
-    }
-}
-</script>
-
-</body>
-</html>
-
-<?php
 //Accion para BEAR BULK EDITOR
 add_action('save_post', 'check_product_images', 10, 3);
 function check_product_images($post_id, $post, $update) {
@@ -119,4 +50,22 @@ function check_product_images($post_id, $post, $update) {
         }
     }
 } 
+add_action('admin_enqueue_scripts', 'enqueue_my_custom_popup_script');
+function enqueue_my_custom_popup_script() {
+    $screen = get_current_screen();
+    if ( $screen->id == "product_page_woobe" ) {
+        wp_enqueue_script('my_custom_popup_script', plugins_url('/my_custom_popup.js', __FILE__), array('jquery', 'thickbox'), false, true);
+    }
+}
+
+add_action('admin_footer', 'my_custom_popup');
+function my_custom_popup() {
+    $screen = get_current_screen();
+    if ( $screen->id == "product_page_woobe" ) {
+        echo '<div id="my_custom_popup" style="display: none;">
+                <p>Recuerda que si pones como "Publicado" un artículo sin imágenes en la galería, éste se cambiará automáticamente a "Borrador".</p>
+              </div>';
+    }
+}
+
 ?>
