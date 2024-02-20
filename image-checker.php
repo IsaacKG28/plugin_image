@@ -1,23 +1,59 @@
 <?php
 /*
 Plugin Name: Image Checker
-Description: Deshabilita el botón de publicar en productos de WooCommerce si no hay imágenes en la galería.
+Description: Éste plugin verifica que existan imágenes en la galería del producto para que su status pueda ser 'publish' en caso contrario publica los productos como borrador.
 Version: 1.0
 Author: Fernando Isaac Gonzalez Medina
 */
+//Empieza la lógica para BEAR Bulk
 //Acción que cambia un producto publicado a borrador si no tiene imágenes
-add_action('save_post', 'check_product_images', 10, 3);
-function check_product_images($post_id, $post, $update) {
-    if ($post->post_type == 'product' && $post->post_status == 'publish') {
-        $product = wc_get_product($post_id);
-        $attachment_ids = $product->get_gallery_image_ids();
-        if (empty($attachment_ids)) {
-            // Cambiamos el estado a 'Borrador'
-            $post->post_status = 'draft';
-            wp_update_post($post);
+add_action('save_post', 'check_gallery_status', 10, 3);
+
+function check_gallery_status($post_ID, $post, $update) {
+    // Solo queremos hacer esto para productos
+    if ($post->post_type == 'product') {
+        // Obtener los IDs de las imágenes adjuntas al producto
+        $attachment_ids = get_post_meta($post_ID, '_product_image_gallery', true);
+
+        // Verificar si la galería está vacía
+        if (empty($attachment_ids) && $post->post_status == 'publish') {
+            // La galería está vacía, establecer el estado como 'draft'
+            wp_update_post(array(
+                'ID' => $post_ID,
+                'post_status' => 'draft'
+            ));
         }
     }
 }
+add_action('init', 'check_existing_products');
+
+function check_existing_products() {
+    // Obtener todos los productos publicados
+    $args = array(
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+    );
+    $products = get_posts($args);
+
+    // Verificar cada producto
+    foreach ($products as $product) {
+        check_gallery_status($product->ID, $product, false);
+    }
+}
+//Parte que hookea correctamente BEAR para cambiar el status en tiempo real
+add_filter('woobe_new_product_status', function ($status) {
+    // Verificar si la galería está vacía
+    if (empty(get_post_gallery(get_the_ID(), false))) {
+        // La galería está vacía, establecer el estado como 'draft'
+        return 'draft';
+    } else {
+        // La galería no está vacía, mantener el estado actual
+        return $status;
+    }
+});
+//Aqui termina lógica de BEAR Bulk
+
 //acción para productos en woocommerce
 add_action('admin_footer', 'disable_publish_button');
 function disable_publish_button() {
@@ -31,7 +67,7 @@ function disable_publish_button() {
         ?>
         <script type="text/javascript">
             jQuery(document).ready(function($) {
-                var gallery_images = $('li.image').length;
+                let gallery_images = $('li.image').length;
                 if (gallery_images == 0) {
                     $('#publish').prop('disabled', true);
                 }
@@ -52,17 +88,8 @@ function disable_publish_button() {
         <?php
     }
 } 
-//Parte que hookea correctamente BEAR para cambiar el status en tiempo real
-add_filter('woobe_new_product_status', function ($status) {
-    // Verificar si la galería está vacía
-    if (empty(get_post_gallery(get_the_ID(), false))) {
-        // La galería está vacía, establecer el estado como 'draft'
-        return 'draft';
-    } else {
-        // La galería no está vacía, mantener el estado actual
-        return $status;
-    }
-});
+
+//JS para ventana modal
 add_action('admin_enqueue_scripts', 'enqueue_my_custom_popup_script');
 function enqueue_my_custom_popup_script() {
     $screen = get_current_screen();
