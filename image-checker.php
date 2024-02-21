@@ -94,16 +94,27 @@ add_action('admin_enqueue_scripts', 'enqueue_my_custom_popup_script');
 function enqueue_my_custom_popup_script() {
     $screen = get_current_screen();
     if ( $screen->id == "product_page_woobe" ) {
+        // Enqueueing Thickbox
+        wp_enqueue_script('thickbox');
+        wp_enqueue_style('thickbox');
+
+        // Enqueueing JavaScript file with Thickbox as a dependency
         wp_enqueue_script('my_custom_popup_script', plugins_url('/my_custom_popup.js', __FILE__), array('jquery', 'thickbox'), false, true);
+
+        // Enqueueing CSS file
+        wp_enqueue_style('my_custom_popup_style', plugins_url('/my_custom_popup.css', __FILE__));
     }
 }
+
 add_action('admin_footer', 'my_custom_popup');
 function my_custom_popup() {
     $screen = get_current_screen();
     if ( $screen->id == "product_page_woobe") {
         echo '<div id="my_custom_popup">
-                <p>Recuerda que si pones como "Publicado" un artículo sin imágenes en la galería, éste se cambiará automáticamente a "Borrador".</p>
+                <p class = "text-modal">Recuerda que si pones como "Publicado" un artículo sin imágenes en la galería, éste se cambiará automáticamente a "Borrador".</p>
               </div>';
     }
 }
+
+
 ?>
