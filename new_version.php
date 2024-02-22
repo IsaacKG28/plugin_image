@@ -77,48 +77,45 @@ function disable_publish_button() {
         ?>
         <script type="text/javascript">
 
-                // Selecciona el elemento span que quieres observar
-                let spanElement = document.getElementById('post-status-display');
-                let publishButton = document.getElementById('publish');
-
-                // Configura el objeto de opciones para el observador
-                let config = { subtree: true, childList: true };
-
-                // Crea un nuevo observador con una función de devolución de llamada
-                let observer = new MutationObserver(function(mutationsList, observer) {
-                    // Itera a través de las mutaciones
-                    for (let mutation of mutationsList) {
-                        // Verifica si se agregaron o eliminaron nodos dentro del span
-                        if (mutation.type === 'childList') {
-                            console.log('Se realizaron cambios dentro del span');
-                            jQuery(document).ready(function($) {
-                let gallery_images = $('li.image').length;
-                let edit_post_status_display = $('.edit-post-status hide-if-no-js').css('display');
-                if (gallery_images == 0 && edit_post_status_display != 'none') {
-                    $('#publish').prop('disabled', true);
-                }
-                $('body').on('DOMNodeInserted', 'li.image', function () {
-                    gallery_images++;
-                    if (gallery_images > 0 || edit_post_status_display == 'none') {
-                        $('#publish').prop('disabled', false);
-                    }
-                });
-                $('body').on('DOMNodeRemoved', 'li.image', function () {
-                    gallery_images--;
+            // Selecciona el elemento span que quieres observar
+            let spanElement = document.getElementById('post-status-display');
+            let publishButton = document.getElementById('publish');
+            // Configura el objeto de opciones para el observador
+            let config = { subtree: true, childList: true };
+            // Crea un nuevo observador con una función de devolución de llamada
+            let observer = new MutationObserver(function(mutationsList, observer) {
+                // Itera a través de las mutaciones
+                for (let mutation of mutationsList) {
+                    // Verifica si se agregaron o eliminaron nodos dentro del span
+                    if (mutation.type === 'childList') {
+                        console.log('Se realizaron cambios dentro del span');
+                        jQuery(document).ready(function($) {
+                            let gallery_images = $('li.image').length;
+                            let edit_post_status_display = $('.edit-post-status hide-if-no-js').css('display');
                     if (gallery_images == 0 && edit_post_status_display != 'none') {
                         $('#publish').prop('disabled', true);
                     }
-                });
-            });
-                            }
+                    $('body').on('DOMNodeInserted', 'li.image', function () {
+                        gallery_images++;
+                        if (gallery_images > 0 || edit_post_status_display == 'none') {
+                            $('#publish').prop('disabled', false);
                         }
+                    });
+                    $('body').on('DOMNodeRemoved', 'li.image', function () {
+                        gallery_images--;
+                        if (gallery_images == 0 && edit_post_status_display != 'none') {
+                            $('#publish').prop('disabled', true);
+                            }
+                        });
+                     });
+                    }
+                }
                     
-                });
-
-                        // Inicia la observación del elemento span con la configuración dada
-                        observer.observe(spanElement, config);
-                                </script>
-                                <?php
+            });
+// Inicia la observación del elemento span con la configuración dada
+observer.observe(spanElement, config);
+        </script>
+        <?php
     }
 }
 
