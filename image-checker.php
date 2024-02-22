@@ -26,7 +26,6 @@ function check_gallery_status($post_ID, $post, $update) {
     }
 }
 add_action('init', 'check_existing_products');
-
 function check_existing_products() {
     // Obtener todos los productos publicados
     $args = array(
@@ -35,7 +34,6 @@ function check_existing_products() {
         'posts_per_page' => -1,
     );
     $products = get_posts($args);
-
     // Verificar cada producto
     foreach ($products as $product) {
         check_gallery_status($product->ID, $product, false);
@@ -88,13 +86,14 @@ function disable_publish_button() {
         <?php
     }
 } 
-
 //JS para ventana modal
 add_action('admin_enqueue_scripts', 'enqueue_my_custom_popup_script');
 function enqueue_my_custom_popup_script() {
     $screen = get_current_screen();
     if ( $screen->id == "product_page_woobe" ) {
         wp_enqueue_script('my_custom_popup_script', plugins_url('/my_custom_popup.js', __FILE__), array('jquery', 'thickbox'), false, true);
+         // Enqueueing CSS file
+         wp_enqueue_style('my_custom_popup_style', plugins_url('/my_custom_popup.css', __FILE__));
     }
 }
 add_action('admin_footer', 'my_custom_popup');
@@ -102,7 +101,7 @@ function my_custom_popup() {
     $screen = get_current_screen();
     if ( $screen->id == "product_page_woobe") {
         echo '<div id="my_custom_popup">
-                <p>Recuerda que si pones como "Publicado" un artículo sin imágenes en la galería, éste se cambiará automáticamente a "Borrador".</p>
+                <p class = "text-modal">Recuerda que si pones como "Publicado" un artículo sin imágenes en la galería, éste se cambiará automáticamente a "Borrador".</p>
               </div>';
     }
 }
