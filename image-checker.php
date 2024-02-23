@@ -27,29 +27,34 @@ function check_gallery_status($post_ID, $post, $update) {
 }
 add_action('init', 'check_existing_products');
 function check_existing_products() {
-    // Obtener todos los productos publicados
-    $args = array(
-        'post_type' => 'product',
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-    );
-    $products = get_posts($args);
-    // Verificar cada producto
-    foreach ($products as $product) {
-        check_gallery_status($product->ID, $product, false);
+    $paged = 1;
+    $posts_per_page = 100; // Ajusta este número según tus necesidades
+
+    while(true) {
+        // Obtener un lote de productos publicados
+        $args = array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'posts_per_page' => $posts_per_page,
+            'paged' => $paged,
+        );
+        $products = get_posts($args);
+
+        // Si no hay más productos, salir del bucle
+        if (empty($products)) {
+            break;
+        }
+
+        // Verificar cada producto en el lote actual
+        foreach ($products as $product) {
+            check_gallery_status($product->ID, $product, false);
+        }
+
+        // Incrementar la página para la próxima iteración
+        $paged++;
     }
 }
-//Parte que hookea correctamente BEAR para cambiar el status en tiempo real
-add_filter('woobe_new_product_status', function ($status) {
-    // Verificar si la galería está vacía
-    if (empty(get_post_gallery(get_the_ID(), false))) {
-        // La galería está vacía, establecer el estado como 'draft'
-        return 'draft';
-    } else {
-        // La galería no está vacía, mantener el estado actual
-        return $status;
-    }
-});
+
 //Aqui termina lógica de BEAR Bulk
 
 //acción para productos en woocommerce
@@ -66,26 +71,42 @@ function disable_publish_button() {
         <script type="text/javascript">
             jQuery(document).ready(function($) {
                 let gallery_images = $('li.image').length;
-                if (gallery_images == 0) {
-                    $('#publish').prop('disabled', true);
-                }
-                $('body').on('DOMNodeInserted', 'li.image', function () {
-                    gallery_images++;
-                    if (gallery_images > 0) {
+                let checkConditions = function() {
+                    let edit_post_status_display = $('.edit-post-status.hide-if-no-js').css('display');
+                    if (gallery_images == 0 && edit_post_status_display != 'none') {
+                        $('#publish').prop('disabled', true);
+                    } else {
                         $('#publish').prop('disabled', false);
                     }
+                };
+                checkConditions();
+                $('body').on('DOMNodeInserted', 'li.image', function () {
+                    gallery_images++;
+                    checkConditions();
                 });
                 $('body').on('DOMNodeRemoved', 'li.image', function () {
                     gallery_images--;
-                    if (gallery_images == 0) {
-                        $('#publish').prop('disabled', true);
-                    }
+                    checkConditions();
                 });
+
+                // Observar cambios en el atributo 'style' del elemento '.edit-post-status.hide-if-no-js'
+                let targetNode = document.querySelector('.edit-post-status.hide-if-no-js');
+                let config = { attributes: true, attributeFilter: ['style'] };
+                let callback = function(mutationsList, observer) {
+                    for(let mutation of mutationsList) {
+                        if (mutation.type === 'attributes') {
+                            checkConditions();
+                        }
+                    }
+                };
+                let observer = new MutationObserver(callback);
+                observer.observe(targetNode, config);
             });
         </script>
         <?php
     }
-} 
+}
+
 //JS para ventana modal
 add_action('admin_enqueue_scripts', 'enqueue_my_custom_popup_script');
 function enqueue_my_custom_popup_script() {
