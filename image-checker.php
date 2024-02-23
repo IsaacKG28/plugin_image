@@ -1,14 +1,13 @@
 <?php
 /*
 Plugin Name: Image Checker
-Description: Éste plugin verifica que existan imágenes en la galería del producto para que su status pueda ser 'publish' en caso contrario publica los productos como borrador.
+Description: Éste plugin verifica que existan imágenes en la galería del producto para que su status pueda ser Publicado en caso contrario publica los productos como borrador.
 Version: 1.0
 Author: Fernando Isaac Gonzalez Medina
 */
 //Empieza la lógica para BEAR Bulk
 //Acción que cambia un producto publicado a borrador si no tiene imágenes
 add_action('save_post', 'check_gallery_status', 10, 3);
-
 function check_gallery_status($post_ID, $post, $update) {
     // Solo queremos hacer esto para productos
     if ($post->post_type == 'product') {
@@ -31,32 +30,40 @@ function check_existing_products() {
     $posts_per_page = 100; // Ajusta este número según tus necesidades
 
     while(true) {
-        // Obtener un lote de productos publicados
-        $args = array(
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'posts_per_page' => $posts_per_page,
-            'paged' => $paged,
-        );
-        $products = get_posts($args);
+        // Intenta obtener los productos de la caché
+        $products = get_transient('my_plugin_products_page_' . $paged);
 
-        // Si no hay más productos, salir del bucle
-        if (empty($products)) {
-            break;
+        if (false === $products) {
+            // Si los productos no están en la caché, obténlos de la base de datos
+            $args = array(
+                'post_type' => 'product',
+                'post_status' => 'publish',
+                'posts_per_page' => $posts_per_page,
+                'paged' => $paged,
+                'fields' => 'ids'
+            );
+            $query = new WP_Query($args);
+            // Si no hay más productos, salir del bucle
+            if (!$query->have_posts()) {
+                break;
+            }
+            $products = $query->posts;
+            // Almacena los productos en la caché durante una hora
+            set_transient('my_plugin_products_page_' . $paged, $products, HOUR_IN_SECONDS);
         }
-
         // Verificar cada producto en el lote actual
-        foreach ($products as $product) {
-            check_gallery_status($product->ID, $product, false);
+        foreach ($products as $product_id) {
+            check_gallery_status($product_id, get_post($product_id), false);
         }
+
+        // Limpiar la memoria
+        wp_reset_postdata();
 
         // Incrementar la página para la próxima iteración
         $paged++;
     }
 }
-
 //Aqui termina lógica de BEAR Bulk
-
 //acción para productos en woocommerce
 add_action('admin_footer', 'disable_publish_button');
 function disable_publish_button() {
@@ -88,7 +95,6 @@ function disable_publish_button() {
                     gallery_images--;
                     checkConditions();
                 });
-
                 // Observar cambios en el atributo 'style' del elemento '.edit-post-status.hide-if-no-js'
                 let targetNode = document.querySelector('.edit-post-status.hide-if-no-js');
                 let config = { attributes: true, attributeFilter: ['style'] };
@@ -106,7 +112,6 @@ function disable_publish_button() {
         <?php
     }
 }
-
 //JS para ventana modal
 add_action('admin_enqueue_scripts', 'enqueue_my_custom_popup_script');
 function enqueue_my_custom_popup_script() {
@@ -125,5 +130,6 @@ function my_custom_popup() {
                 <p class = "text-modal">Recuerda que si pones como "Publicado" un artículo sin imágenes en la galería, éste se cambiará automáticamente a "Borrador".</p>
               </div>';
     }
+//TEST VERSION
 }
-?>
+?> 
