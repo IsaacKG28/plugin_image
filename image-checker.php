@@ -31,7 +31,9 @@ function check_existing_products() {
         $meta_query = array(
             'key' => '_product_image_gallery_checked',
             'compare' => 'NOT EXISTS',
+            'value' => '',
         );
+        
 
         $args = array(
             'post_type' => 'product',
@@ -41,10 +43,8 @@ function check_existing_products() {
             'fields' => 'ids',
             'meta_query' => $meta_query,
         );
-
-        $query = new WP_Query($args);
-        $products = $query->posts;
-
+        $products = get_posts($args);
+        
         foreach ($products as $product_id) {
             check_gallery_status_on_update(null, $product_id, '_product_image_gallery', null);
             update_post_meta($product_id, '_product_image_gallery_checked', true);
