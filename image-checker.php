@@ -7,63 +7,56 @@ Author: Fernando Isaac Gonzalez Medina
 */
 //Empieza la lógica para BEAR Bulk
 //Acción que cambia un producto publicado a borrador si no tiene imágenes
-add_action('save_post', 'check_gallery_status', 10, 3);
-function check_gallery_status($post_ID, $post, $update) {
-    // Solo queremos hacer esto para productos
-    if ($post->post_type == 'product') {
-        // Obtener los IDs de las imágenes adjuntas al producto
-        $attachment_ids = get_post_meta($post_ID, '_product_image_gallery', true);
+add_action('added_post_meta', 'check_gallery_status_on_update', 10, 4);
+add_action('updated_post_meta', 'check_gallery_status_on_update', 10, 4);
+add_action('deleted_post_meta', 'check_gallery_status_on_update', 10, 4);
 
-        // Verificar si la galería está vacía
-        if (empty($attachment_ids) && $post->post_status == 'publish') {
-            // La galería está vacía, establecer el estado como 'draft'
+function check_gallery_status_on_update($meta_id, $post_ID, $meta_key, $meta_value) {
+    if (get_post_type($post_ID) == 'product' && $meta_key == '_product_image_gallery') {
+        if (empty(get_post_meta($post_ID, '_product_image_gallery', true))) {
             wp_update_post(array(
                 'ID' => $post_ID,
-                'post_status' => 'draft'
+                'post_status' => 'draft',
             ));
         }
     }
 }
+
 add_action('init', 'check_existing_products');
 function check_existing_products() {
     $paged = 1;
-    $posts_per_page = 100; // Ajusta este número según tus necesidades
+    $posts_per_page = 100;
 
-    while(true) {
-        // Intenta obtener los productos de la caché
-        $products = get_transient('my_plugin_products_page_' . $paged);
+    do {
+        $meta_query = array(
+            'key' => '_product_image_gallery_checked',
+            'compare' => 'NOT EXISTS',
+        );
 
-        if (false === $products) {
-            // Si los productos no están en la caché, obténlos de la base de datos
-            $args = array(
-                'post_type' => 'product',
-                'post_status' => 'publish',
-                'posts_per_page' => $posts_per_page,
-                'paged' => $paged,
-                'fields' => 'ids'
-            );
-            $query = new WP_Query($args);
-            // Si no hay más productos, salir del bucle
-            if (!$query->have_posts()) {
-                break;
-            }
-            $products = $query->posts;
-            // Almacena los productos en la caché durante una hora
-            set_transient('my_plugin_products_page_' . $paged, $products, HOUR_IN_SECONDS);
-        }
-        // Verificar cada producto en el lote actual
+        $args = array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'posts_per_page' => $posts_per_page,
+            'paged' => $paged,
+            'fields' => 'ids',
+            'meta_query' => $meta_query,
+        );
+
+        $query = new WP_Query($args);
+        $products = $query->posts;
+
         foreach ($products as $product_id) {
-            check_gallery_status($product_id, get_post($product_id), false);
+            check_gallery_status_on_update(null, $product_id, '_product_image_gallery', null);
+            update_post_meta($product_id, '_product_image_gallery_checked', true);
         }
 
-        // Limpiar la memoria
         wp_reset_postdata();
-
-        // Incrementar la página para la próxima iteración
         $paged++;
-    }
+    } while(count($products) == $posts_per_page);
 }
+
 //Aqui termina lógica de BEAR Bulk
+
 //acción para productos en woocommerce
 add_action('admin_footer', 'disable_publish_button');
 function disable_publish_button() {
